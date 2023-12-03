@@ -6,6 +6,7 @@ mod identity;
 mod location;
 mod polar;
 mod test_suite;
+mod agent_manager;
 
 use filter::beam_deviation_filter;
 use test_suite::*;
@@ -55,7 +56,7 @@ fn test_movement_one() {
     line_break();
     let mut rng = thread_rng();
     
-    let mut agent = Agent::new(0, agent_coords.radials.get(&1).unwrap().clone(), 100.0);
+    let mut agent = Agent::new("0".into(), 0, agent_coords.radials.get(&1).unwrap().clone(), 100.0);
     
     println!("Agent: {:?}", agent);
     let mut radials: Vec<Radial> = vec![];

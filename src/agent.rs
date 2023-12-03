@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 
 #[derive(Debug, Clone)]
 pub struct Agent {
+    pub id: Identity,
     pub origin: usize,
     pub position: Radial,
     pub current_coord: Option<Radial>,
@@ -16,8 +17,9 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub fn new(origin: usize, position: Radial, velocity: f64) -> Agent {
+    pub fn new(id: Identity, origin: usize, position: Radial, velocity: f64) -> Agent {
         Agent {
+            id: id,
             origin: origin,
             position: position.clone(),
             current_coord: None,

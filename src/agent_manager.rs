@@ -1,38 +1,46 @@
+use std::collections::HashMap;
+use crate::agent::Agent;
+use crate::polar::Radial;
+use crate::identity::Identity;
+
 struct AgentManager {
-    agents: Vec<Agent>,
+    agents: HashMap<Identity, Agent>,
 }
 
 impl AgentManager {
     fn new() -> Self {
         AgentManager {
-            agents: Vec::new(),
+            agents: HashMap::new(),
         }
     }
 
     fn add_agent(&mut self, agent: Agent) {
-        self.agents.push(agent);
+        self.agents.insert(agent.id.clone(), agent);
     }
 
     fn remove_agent(&mut self, agent: &Agent) {
-        if let Some(index) = self.agents.iter().position(|a| a == agent) {
-            self.agents.remove(index);
+        self.agents.remove(&agent.id);
+    }
+
+    fn get_agents(&self) -> Vec<&Agent> {
+        self.agents.values().collect()
+    }
+
+    fn get_agent(&self, agent_id: &Identity) -> Option<&Agent> {
+        self.agents.get(agent_id)
+    }
+
+    fn send_agent_position(&mut self, agent_id: &Identity, position: Radial) {
+        if let Some(agent) = self.agents.get_mut(agent_id) {
+            agent.send_position(&position);
         }
     }
 
-    fn get_agents(&self) -> &[Agent] {
-        &self.agents
-    }
-
-    fn send_position_to_agents(&mut self, position: Position) {
-        for agent in &mut self.agents {
-            agent.send_position(position);
-        }
-    }
-
-    fn update_agent_position(&mut self, agent: &Agent, position: Position) {
-        if let Some(agent) = self.agents.iter_mut().find(|a| a == agent) {
-            agent.get_position();
+    fn get_agent_position(&mut self, agent_id: &Identity) -> Option<Radial> {
+        if let Some(agent) = self.agents.get_mut(agent_id) {
+            Some(agent.get_position())
+        } else {
+            None
         }
     }
 }
-
