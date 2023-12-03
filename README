@@ -1,0 +1,5 @@
+# About Swarmy
+
+Fun side project to work on a robot swarm that uses democratic systems to control the swarm.  Eventual goals are to have a full ecosystem of robot swarm controllers/operating systems to carry out various tasks.
+
+This is the navigation code for the system.
