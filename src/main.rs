@@ -30,9 +30,32 @@ fn main() {
 
 fn test_movement_many() {
     println!("Moving Many");
-    let input2 = vec![1.0, 2.0, 3.0, 4.0];
-    let output2 = beam_deviation_filter(&input2);
-    println!("output2: {:?}", output2);
+    // [TODO] Create many agents.
+    // [TODO] Make agents move simultaneously in random directions.
+    // [TODO] Make agents move at different time intervals with different alignments to update frequencies.  Need to be able to adjust beacon update times to agent update times.
+}
+
+fn test_polar_coordinate_beacons() {
+    println!("Initializing Coordinates");
+    println!("Setting Configs");
+    let max_distance = 100.0;
+    println!("Creating Beacons");
+
+    // [TODO] Create beacons with polar coordinates.
+}
+
+fn test_multi_beacon_tracking() {
+    println!("Initializing Coordinates");
+    println!("Setting Configs");
+    let grid = (10, 10);
+    println!("Creating Beacons");
+    let beacon_positions = create_beacons(10, grid);
+    // [TODO] Properly manage multiple beacons, with them tracking movement of each agent separately.
+    // [TODO] Have beacons actually construct agent position based on distance from agent.  Origin becomes much messier without the universal reference frame.
+    // [TODO] Have differing updates for beacons, where the agent moves in real time, and the beacons have to piece together where the agent is.
+    // [TODO] Confirm movement of agents are internally tracked within the agents, so that requesting the position of the agent is done from each beacon.
+
+
 }
 
 fn test_movement_one() {
@@ -49,14 +72,14 @@ fn test_movement_one() {
     println!("Creating Agents");
     let agent_nodes = create_nodes_with_positions(10, grid);
     let agents: Vec<Identity> = agent_nodes.iter().cloned().map(|x| {x.0.clone()}).collect();
-    let mut agent_graph = get_distance_graph(agent_nodes);
+    let mut agent_graph = get_distance_graph(agent_nodes.clone());
     let mut agent_coords = agent_graph.get_position_graph(&agents, &beam_deviation_filter);
     println!("Agents Created");
 
     line_break();
     let mut rng = thread_rng();
     
-    let mut agent = Agent::new("0".into(), 0, agent_coords.radials.get(&1).unwrap().clone(), 100.0);
+    let mut agent = Agent::new("0".into(), 0, agent_coords.radials.get(&agent_nodes[1].0).unwrap().clone(), 100.0);
     
     println!("Agent: {:?}", agent);
     let mut radials: Vec<Radial> = vec![];
@@ -64,7 +87,7 @@ fn test_movement_one() {
     for _ in 0..10 {
         let new_angle = rng.gen::<f64>() * std::f64::consts::PI * 2.0;
         let new_radius = rng.gen::<f64>() * 100.0;
-        let radial = Radial {id: agent.position.id, radius: new_radius, angle: new_angle};
+        let radial = Radial {id: agent.position.id.clone(), radius: new_radius, angle: new_angle};
 
         radials.push(radial.clone());
     
@@ -93,12 +116,12 @@ fn test_coordinates() {
     let beacons: Vec<Identity> = nodes.iter().cloned().map(|x| {x.0.clone()}).collect();
     println!("beacons: {:?}", beacons);
     line_break();
-    // let grid = create_grid(&nodes);
-    // display_grid(grid);
+    let grid = create_grid(&nodes);
+    display_grid(grid);
     line_break();
     let dg = get_distance_graph(nodes);
     println!("distance graph created.");
-    dg.get_position_graph(&beacons, &beam_deviation_filter);
+    println!("coords: {:?}", dg.get_position_graph(&beacons, &beam_deviation_filter));
 }
 
 fn test_position_graph() {

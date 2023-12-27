@@ -1,6 +1,7 @@
 use std::collections::{HashMap, hash_map::Entry};
 use std::ops::{Index, IndexMut};
 use std::f64::consts::{PI, FRAC_PI_2};
+use crate::identity::Identity;
 
 pub type Radius = f64;
 pub type Angle = f64;
@@ -14,19 +15,19 @@ enum Quadrant {
 
 #[derive(Clone, Debug)]
 pub struct PolarCoordinates {
-    pub origin: usize,
-    pub radials: HashMap<usize, Radial>,
+    pub origin: Identity,
+    pub radials: HashMap<Identity, Radial>,
 }
 
-impl Index<&'_ usize> for PolarCoordinates {
+impl Index<&'_ Identity> for PolarCoordinates {
     type Output = Radial;
-    fn index(&self, k: &usize) -> &Radial {
+    fn index(&self, k: &Identity) -> &Radial {
         &self.radials[k]
     }
 }
 
-impl IndexMut<&'_ usize> for PolarCoordinates {
-    fn index_mut(&mut self, k: &usize) -> &mut Radial {
+impl IndexMut<&'_ Identity> for PolarCoordinates {
+    fn index_mut(&mut self, k: &Identity) -> &mut Radial {
         match self.radials.get_mut(k) {
             Some(r) => r,
             None => panic!("No radial found at that value.")
@@ -35,62 +36,70 @@ impl IndexMut<&'_ usize> for PolarCoordinates {
 }
 
 impl PolarCoordinates {
-    pub fn new(origin: usize) -> PolarCoordinates {
+    pub fn new(origin: Identity) -> PolarCoordinates {
         PolarCoordinates {
             origin: origin,
-            radials: HashMap::<usize, Radial>::new(),
+            radials: HashMap::<Identity, Radial>::new(),
         }
     }
 
-    pub fn from_distances(origin: usize, calibration_idx: usize, skip_ids: Vec<usize>, calibration: &Vec<(usize, f64)>, distance_vec: &Vec<Vec<f64>>) -> PolarCoordinates {
+    pub fn from_distances(origin: Identity, calibration_id: Identity, skip_ids: Vec<Identity>, calibration: &Vec<(Identity, f64)>, distance_vec: &Vec<Vec<f64>>) -> PolarCoordinates {
         let mut output = PolarCoordinates {
             origin: origin,
-            radials: HashMap::<usize, Radial>::new(),
+            radials: HashMap::<Identity, Radial>::new(),
         };
+
+        let calibration_idx = calibration.iter().position(|x| x.0 == calibration_id).unwrap();
 
         // let skip_ids: Vec<usize> = calibration.iter().map(|x| x.0).collect();
 
         output.add_radial(Radial {
-            id: calibration[calibration_idx].0,
+            id: calibration[calibration_idx].clone().0,
             radius: calibration[calibration_idx].1,
             angle: 0.0 as Angle
         });
-        
-        for i in 1..distance_vec.len() {
-            if skip_ids.contains(&i) {
+
+        let diff = distance_vec.len() - calibration.len();
+
+        for i in diff..distance_vec.len() {
+            let idx = i - diff;
+            if skip_ids.contains(&calibration[idx].0) {
                 continue;
             }
             
-            let a = distance_vec[0][calibration[calibration_idx].0];
+            let a = distance_vec[0][calibration_idx];
             let b = distance_vec[0][i];
-            let c = distance_vec[calibration[calibration_idx].0][i];
-            output.add_b_edge(i, a, b, c);
+            let c = distance_vec[calibration_idx][i];
+            output.add_b_edge(calibration[idx].0.clone(), a, b, c);
         }
 
         return output;
     }
 
     pub fn add_radial(&mut self, r: Radial) {
-        self.radials.insert(r.id, r);
+        self.radials.insert(r.clone().id, r.clone());
     }
 
-    pub fn add_b_edge(&mut self, id: usize, a: f64, b: f64, c: f64) {
-         self.radials.insert(id, Radial::from_distances(id, a, b, c));
+    pub fn add_b_edge(&mut self, id: Identity, a: f64, b: f64, c: f64) {
+         self.radials.insert(id.clone(), Radial::from_distances(id.clone(), a, b, c));
     }
 
-    pub fn get(&self, key: &usize) -> Option<&Radial> {
+    pub fn get(&self, key: &Identity) -> Option<&Radial> {
         return self.radials.get(key);
     }
 
-    pub fn get_mut(&mut self, key: &usize) -> Option<&mut Radial> {
+    pub fn get_mut(&mut self, key: &Identity) -> Option<&mut Radial> {
         return self.radials.get_mut(key);
     }
 
-    pub fn reconcile_radial(&mut self, offset_angle: Angle, id: usize, radial: &Radial) {
+    // Takes the offset angle and compares the incoming angle based from the offset +/-.  The angle is kept if the offset + the incoming angle equal the given angle.  If not the kept angle is equal to the offset - the incoming angle.  This allows for negative angles, since distances will always calculate angles <180 degrees, but have no way to determine clockwise vs counterclockwise.
+
+    // The positive and negative direction on the angle is relative to an "offset" angle direction and not an absolute clockwise/counterclockwise.
+    pub fn reconcile_radial(&mut self, offset_angle: Angle, id: Identity, radial: &Radial) {
         let test_radial = self.get_mut(&id).unwrap();
 
-        let pos_angle = radial.angle + offset_angle;
-        let neg_angle = radial.angle - offset_angle;
+        let pos_angle = offset_angle + radial.angle;
+        let neg_angle = offset_angle - radial.angle;
 
         if (test_radial.angle - pos_angle).abs() < 0.0000001 {
             return;
@@ -102,13 +111,13 @@ impl PolarCoordinates {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Radial {
-    pub id: usize,
+    pub id: Identity,
     pub radius: Radius,
     pub angle: Angle
 }
 
 impl Radial {
-    pub fn empty(id: usize) -> Radial {
+    pub fn empty(id: Identity) -> Radial {
         Radial {
             id: id,
             radius: 0.0,
@@ -116,7 +125,7 @@ impl Radial {
         }
     }
 
-    pub fn from_distances(id: usize, a: f64, b: f64, c:f64) -> Radial {
+    pub fn from_distances(id: Identity, a: f64, b: f64, c:f64) -> Radial {
         Radial {
             id: id,
             radius: b,
@@ -126,7 +135,7 @@ impl Radial {
     pub fn to_degrees(&self) -> Radial {
         return Radial
         {
-            id: self.id,
+            id: self.id.clone(),
             radius: self.radius,
             angle: self.angle.to_degrees()
         };
@@ -150,7 +159,7 @@ impl Radial {
         let angle = (y / radius).asin();
 
         return Radial {
-            id: self.id,
+            id: self.id.clone(),
             radius: radius,
             angle: match get_quadrant_from_cartesian(x, y) {
                 Quadrant::TopRight => angle,
@@ -193,7 +202,7 @@ pub fn get_unknown_triangle_side(a: f64, b: f64, theta: Angle) -> f64 {
 pub fn add_radials(radials: &Vec<Radial>) -> Radial {
     let mut x = 0.0;
     let mut y = 0.0;
-    let id = radials[0].id;
+    let id = radials[0].id.clone();
     // Law of Sines:
     // a / sin(a) = c / sin(c)
     // sin(pi/2) == 1

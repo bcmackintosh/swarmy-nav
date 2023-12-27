@@ -153,10 +153,10 @@ impl DistanceGraph {
                 distance_vec[node_reference[right]][node_reference[left]].push(self.distances[i]);
             }
         }
+
         let mut scalar_vec = vec![vec![0 as f64; cleaned_nodes.len()]; cleaned_nodes.len()];
 
         // [TODO] Implement better cluster detection
-
         for i in 0..cleaned_nodes.len() {
             for j in 0..cleaned_nodes.len() {
                 if i == j {
@@ -171,22 +171,26 @@ impl DistanceGraph {
         let duration = end.duration_since(start);
         println!("Finished Getting Distances for Beacons in {:?} milliseconds", duration);
 
-        let coordinates = self.get_coordinates(scalar_vec);
+        let coordinates = self.get_coordinates(cleaned_nodes, scalar_vec);
 
         return coordinates;
     }
 
-    fn get_coordinates(&self, distance_vec: Vec<Vec<f64>>) -> PolarCoordinates {
+    fn get_coordinates(&self, references: Vec<Identity>, distance_vec: Vec<Vec<f64>>) -> PolarCoordinates {
         // [TODO] Support higher number of dimensions than 2.  This would require a data structure that handles any N number of dimensions.
 
         // Flatten and sort the distance vec to determine the size of the grid.  This doesn't need to be ordered or organized in any way, since it is just for defining the maximum size the grid needs to be in order to hold all positions.
         let start = SystemTime::now();
 
-        let mut calibration: Vec<(usize, f64)> = vec![];
+        let mut calibration: Vec<(Identity, f64)> = vec![];
+        let mut skip_ids: Vec<usize> = vec![];
+        let mut calibration_ids: Vec<usize> = vec![];
 
-        for i in 1..distance_vec.len() {
-            if distance_vec[0][i] > 0.0 {
-                calibration.push((i, distance_vec[0][i]));
+        for i in 0..distance_vec.len() {
+            calibration.push((references[i].clone(), distance_vec[0][i]));
+
+            if distance_vec[0][i] == 0.0 {
+                skip_ids.push(i);
             }
         }
 
@@ -194,23 +198,32 @@ impl DistanceGraph {
         let duration = end.duration_since(start);
         println!("Finished Calibration in {:?} milliseconds", duration);
 
-        // Start at 0,0 and place the next available space that is far enough for the next identity.  We actually will store all of the distances as a set of radius and theta between 2 points, where we can later convert the polar coordinates to cartesian.
-
-        // We store the origin point assuming "0" as the identity, then we go through all permutations of distances with "0."
-
+        // The origin is the first radial, and arbitrarily defines itself as a 0 degree "angled" radian, since the radian drawn is just from the first and second point.  This allows us to set an arbitrary calibration point to begin.
         println!("Generating Origin Coordinates");
-        // let mut origin_coordinates = PolarCoordinates::from_distances(0, &calibration, &distance_vec);
-        let mut origin_coordinates = PolarCoordinates::from_distances(0, 0, vec![0], &calibration, &distance_vec);
-        
-        let mut offset_coordinates = PolarCoordinates::from_distances(0, 1, vec![0, calibration[0].0], &calibration, &distance_vec);
+        let mut origin_coordinates = PolarCoordinates::from_distances(references[0].clone(), references[1].clone(), vec![references[0].clone()], &calibration, &distance_vec);
 
-        println!("Reconciling radials");
+        // Once the origin coordinates are generated, we need to appropriately pick an offset.  We need this to be an angle other than the one chosen in the origin coordinates so we can arbitrarily set clockwise or counterclockwise as positive and negative for angles.  We then calibrate each other radial as positive or negative relative to the offset angle.
+        for r in &origin_coordinates.radials {
+            if r.1.angle == 0.0 {
+                skip_ids.push(references.iter().position(|x| x == &r.1.id).unwrap());
+            }
+        }
+
+        calibration_ids = references.iter().enumerate().filter(|x| !skip_ids.contains(&x.0)).map(|x| x.0).collect::<Vec<usize>>();
+
+        let skip_refs: Vec<Identity> = skip_ids.iter().map(|x| references[*x].clone()).collect();
+
+        let mut offset_coordinates = PolarCoordinates::from_distances(references[0].clone(), references[calibration_ids[0]].clone(), skip_refs.clone(), &calibration, &distance_vec);
 
         // We do a second pass basing the distance from the "2" identity, to confirm if the other thetas are positive or negative.  If the distance to the "2" identity is correct, they remain positive, but if it should be further, they will be negative.
-        for i in 3..distance_vec.len() {
-            let offset_angle = origin_coordinates.radials[&calibration[1].0].angle;
+        for i in 0..references.len() {
+            if skip_ids.contains(&i) {
+                continue;
+            }
 
-            origin_coordinates.reconcile_radial(offset_angle, i, offset_coordinates.get(&i).unwrap());
+            let offset_angle = origin_coordinates.get(&references[calibration_ids[0]]).unwrap().angle;
+
+            origin_coordinates.reconcile_radial(offset_angle, references[i].clone(), offset_coordinates.get(&references[i].clone()).unwrap());
         }
 
         println!("Completed Coordinate Processing");

@@ -68,7 +68,7 @@ impl Agent {
             let coord = self.current_coord.as_ref().unwrap();
 
             radials.push(Radial { 
-                id: coord.id, 
+                id: coord.id.clone(),
                 radius: coord.radius + distance_to_travel, 
                 angle: coord.angle });
             self.position = add_radials(&radials);

@@ -6,6 +6,8 @@ use colored::Colorize;
 
 use crate::identity::Identity;
 use crate::location::{DistanceGraph, MomentEdge};
+use crate::polar::PolarCoordinates;
+use crate::filter::beam_deviation_filter;
 
 pub fn page_break() {
     println!("{}", format!("\n{:#<80}\n", ""));
@@ -129,4 +131,12 @@ pub fn display_grid(grid: Vec<Vec<Identity>>) {
     for i in (0..grid.len()).rev() {
         println!("{:?}", grid[i]);
     }
+}
+
+pub fn create_beacons(nodes: usize, grid: (usize, usize)) -> PolarCoordinates {
+    let beacon_nodes = create_nodes_with_positions(nodes, grid);
+    let beacons: Vec<Identity> = beacon_nodes.iter().cloned().map(|x| {x.0.clone()}).collect();
+    let beacon_graph = get_distance_graph(beacon_nodes);
+
+    return beacon_graph.get_position_graph(&beacons, &beam_deviation_filter);
 }
