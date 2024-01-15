@@ -141,6 +141,16 @@ impl Radial {
         };
     }
 
+    pub fn get_distance(&self, other: &Radial) -> f64 {
+        let (s_x, s_y) = self.get_cartesian();
+        let (o_x, o_y) = other.get_cartesian();
+
+        let x = o_x - s_x;
+        let y = o_y - s_y;
+
+        return (x.powi(2) + y.powi(2)).sqrt();
+    }
+
     pub fn get_cartesian(&self) -> (f64, f64) {
         let x = (FRAC_PI_2 - self.angle).sin() * self.radius;
         let y = self.angle.sin() * self.radius;

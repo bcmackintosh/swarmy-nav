@@ -1,17 +1,19 @@
-use std::sync::Arc;
+use std::{sync::Arc, thread::sleep, time::Duration};
 
 mod agent;
+mod agent_manager;
+mod beacon;
 mod filter;
 mod identity;
 mod location;
 mod polar;
+mod signal;
 mod test_suite;
-mod agent_manager;
 
 use filter::beam_deviation_filter;
 use test_suite::*;
 
-use crate::{location::{MomentEdge, DistanceGraph}, identity::Identity, polar::{PolarCoordinates, Radial, add_radials}, agent::Agent};
+use crate::{location::{MomentEdge, DistanceGraph}, identity::Identity, polar::{PolarCoordinates, Radial, add_radials}, agent::Agent, beacon::beacon::Beacon};
 use crate::polar::get_unknown_triangle_angle;
 
 use std::time::SystemTime;
@@ -24,7 +26,7 @@ use rand::thread_rng;
 
 fn main() {
     page_break();
-    test_movement_many();
+    test_polar_coordinate_beacons();
     page_break();
 }
 
@@ -42,6 +44,25 @@ fn test_polar_coordinate_beacons() {
     println!("Creating Beacons");
 
     // [TODO] Create beacons with polar coordinates.
+    // let beacon_positions = create_beacon_polar(10, max_distance);
+
+    // println!("beacon_positions: {:?}", beacon_positions);
+
+    println!("testing beacon thread");
+    
+    {
+        let mut beacon = Beacon::new("0".into(), Radial {id: "0".into(), radius: 0.0, angle: 0.0});
+        beacon.listen();
+        let mut beacon_2 = Beacon::new("1".into(), Radial {id: "1".into(), radius: 0.0, angle: 0.0});
+        beacon_2.listen();
+        sleep(Duration::from_millis(1000));
+        beacon.stop();
+        beacon_2.stop();
+    }
+
+    println!("stop called");
+    sleep(Duration::from_millis(50));
+
 }
 
 fn test_multi_beacon_tracking() {
@@ -49,7 +70,7 @@ fn test_multi_beacon_tracking() {
     println!("Setting Configs");
     let grid = (10, 10);
     println!("Creating Beacons");
-    let beacon_positions = create_beacons(10, grid);
+    let beacon_positions = create_beacon_grid(10, grid);
     // [TODO] Properly manage multiple beacons, with them tracking movement of each agent separately.
     // [TODO] Have beacons actually construct agent position based on distance from agent.  Origin becomes much messier without the universal reference frame.
     // [TODO] Have differing updates for beacons, where the agent moves in real time, and the beacons have to piece together where the agent is.
