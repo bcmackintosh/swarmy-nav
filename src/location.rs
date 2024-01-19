@@ -6,16 +6,16 @@ use std::time::SystemTime;
 
 pub type DistanceVector = Arc<[MomentEdge]>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MomentEdge {
     pub left: Identity,
     pub right: Identity,
     pub distance: f64,
-    pub timestamp: LocalDateTime
+    pub timestamp: SystemTime
 }
 
 impl MomentEdge {
-    pub fn new(left: Identity, right: Identity, distance: f64, timestamp: LocalDateTime) -> MomentEdge {
+    pub fn new(left: Identity, right: Identity, distance: f64, timestamp: SystemTime) -> MomentEdge {
         MomentEdge {
             left: left.clone(),
             right: right.clone(),
@@ -55,14 +55,14 @@ impl Location {
         }
     }
 
-    pub fn from_node(node: Identity, distances: Vec<(Identity, f64, LocalDateTime)>) -> Location {
+    pub fn from_node(node: Identity, distances: Vec<(Identity, f64, SystemTime)>) -> Location {
         Location {
             node: node.clone(),
             distances: distances.into_iter().map(|t| {MomentEdge::new(node.clone(), t.0, t.1, t.2)}).collect::<Vec<MomentEdge>>().into()
         }
     }
 
-    pub fn from_raw(node: Identity, distances: Vec<(Identity, Identity, f64, LocalDateTime)>) -> Location {
+    pub fn from_raw(node: Identity, distances: Vec<(Identity, Identity, f64, SystemTime)>) -> Location {
         Location {
             node: node.clone(),
             distances: distances.into_iter().map(|t| {MomentEdge::new(t.0, t.1, t.2, t.3)}).collect::<Vec<MomentEdge>>().into()
@@ -74,7 +74,7 @@ pub struct DistanceGraph {
     pub lefts: Vec<Identity>,
     pub rights: Vec<Identity>,
     pub distances: Vec<f64>,
-    pub timestamps: Vec<LocalDateTime>,
+    pub timestamps: Vec<SystemTime>,
 }
 
 impl DistanceGraph {
@@ -83,7 +83,7 @@ impl DistanceGraph {
             lefts: Vec::<Identity>::new(),
             rights: Vec::<Identity>::new(),
             distances: Vec::<f64>::new(),
-            timestamps: Vec::<LocalDateTime>::new(),
+            timestamps: Vec::<SystemTime>::new(),
         }
     }
 
@@ -92,7 +92,7 @@ impl DistanceGraph {
             lefts: edges.iter().map(|e| e.left.clone()).collect::<Vec<Identity>>(),
             rights: edges.iter().map(|e| e.right.clone()).collect::<Vec<Identity>>(),
             distances: edges.iter().map(|e| e.distance).collect::<Vec<f64>>(),
-            timestamps: edges.iter().map(|e| e.timestamp).collect::<Vec<LocalDateTime>>(),
+            timestamps: edges.iter().map(|e| e.timestamp).collect::<Vec<SystemTime>>(),
         }
     }
 

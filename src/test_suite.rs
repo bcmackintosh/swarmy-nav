@@ -1,5 +1,6 @@
 use std::cmp;
 use std::collections::HashMap;
+use std::time::SystemTime;
 use datetime::LocalDateTime;
 use rand::{seq::SliceRandom, thread_rng};
 use colored::Colorize;
@@ -87,7 +88,7 @@ pub fn get_distance_graph(nodes: Vec<(Identity, usize, usize)>) -> DistanceGraph
             let x = (nodes[i].1 as f64 - nodes[j].1 as f64) as f64;
             let y = (nodes[i].2 as f64 - nodes[j].2 as f64) as f64;
             let dist = ((x * x + y * y) as f64).sqrt();
-            edges.push(MomentEdge { left: nodes[i].0.clone(), right: nodes[j].0.clone(), distance: dist, timestamp: LocalDateTime::now() });
+            edges.push(MomentEdge { left: nodes[i].0.clone(), right: nodes[j].0.clone(), distance: dist, timestamp: SystemTime::now() });
         }
     }
 

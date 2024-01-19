@@ -1,7 +1,9 @@
 use crate::identity::Identity;
 use crate::polar::Radial;
 use crate::signal::Signal;
+use crate::location::MomentEdge;
 
+use datetime::LocalDateTime;
 use std::collections::{VecDeque, HashMap};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle, sleep, Thread};
@@ -49,7 +51,7 @@ pub struct Beacon {
     cancel: Arc<AtomicBool>,
     queue: Option<Sender<BeaconSignal>>,
     last_update: SystemTime,
-    distance_cache: HashMap<Identity, (f64, SystemTime)>,
+    distance_cache: HashMap<Identity, MomentEdge>,
     process_receiver: Receiver<BeaconSignal>,
     process_sender: Sender<BeaconSignal>,
 }
@@ -89,7 +91,7 @@ impl Beacon {
                     println!("received stop {}", id);
                     break;
                 }
-                
+
                 println!("doing thing");
                 let init_time = SystemTime::now();
                 sleep(Duration::from_millis(20));
@@ -113,7 +115,7 @@ impl Beacon {
         self.queue = Some(tx);
     }
 
-    pub fn get_distances(&mut self) -> Vec<(Identity, f64)> {
+    pub fn get_distances(&mut self) -> Vec<MomentEdge> {
         let current_time = SystemTime::now();
         if current_time.duration_since(self.last_update).unwrap().as_millis() < POLL_TIME.as_millis() {
             return self.distance_vec();
@@ -123,14 +125,14 @@ impl Beacon {
 
         while next_item.is_ok() {
             let signal = next_item.as_ref().unwrap();
-            self.distance_cache.entry(signal.id.clone()).or_insert((signal.distance, signal.timestamp));
+            self.distance_cache.entry(signal.id.clone()).or_insert(MomentEdge { left: self.id.clone(), right: signal.id.clone(), distance: signal.distance, timestamp: signal.timestamp });
         }
 
         return self.distance_vec();
     }
 
-    fn distance_vec(&self) -> Vec<(Identity, f64)> {
-        return self.distance_cache.iter().map(|x| (x.0.clone(), x.1.clone().0)).collect();
+    fn distance_vec(&self) -> Vec<MomentEdge> {
+        return self.distance_cache.iter().map(|x| (x.1.clone())).collect();
     }
 
     pub fn stop(&mut self) {

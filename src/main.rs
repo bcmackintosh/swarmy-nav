@@ -169,7 +169,7 @@ fn test_position_graph() {
                 let mult: f64 = rng.gen();
                 let distance = ((j - i) as f64) * (mult + 0.5);
                 // println!("rand: {:?}, dist: {:?}", mult, distance);
-                edges.push(MomentEdge::new(beacons[i].clone(), beacons[j].clone(), distance, LocalDateTime::now()));
+                edges.push(MomentEdge::new(beacons[i].clone(), beacons[j].clone(), distance, SystemTime::now()));
             }
         }
     }
